@@ -40,62 +40,120 @@ def spline_fit(spec, spec_type):
     spec_waves = spec.waves
     spec_flux = spec.flux
     spec_error = spec.error
-
+	
+    # Continuum dominated sources use wavelength intervales 5-7,
+    # 13.8-14.2, and 27-31.5 um
     if spec_type == "C":
         ind_short = ((spec_waves >= 5.0*u.micron) &
-                     (spec_waves <= 7.2*u.micron))
+                     (spec_waves <= 7.0*u.micron))
+        ind_int = ((spec_waves >= 13.8*u.micron) &
+                   (spec_waves <= 14.2*u.micron))
+        ind_long = ((spec_waves >= 27.0*u.micron) &
+                    (spec_waves <= 31.5*u.micron))
+        
+        # Fit each interval with a power-law which is a line in log-space
+        p_short = np.polyfit(np.log10(spec_waves.value[ind_short]),
+                             np.log10(spec_flux.value[ind_short]),
+                             deg=1)
+        p_int = np.polyfit(np.log10(spec_waves.value[ind_int]),
+                           np.log10(spec_flux.value[ind_int]),
+                           deg=1)
+        p_long = np.polyfit(np.log10(spec_waves.value[ind_long]),
+                            np.log10(spec_flux.value[ind_long]),
+                            deg=1)
+        
+        pivot_short = spec_waves.value[ind_short]
+        pivot_int = spec_waves.value[ind_int]
+        pivot_long = spec_waves.value[ind_long]
+        pivot_flux_short = 10**(p_short[0]*np.log10(pivot_short) +
+                                p_short[1])
+        pivot_flux_int = 10**(p_int[0]*np.log10(pivot_int) +
+                              p_int[1])
+        pivot_flux_long = 10**(p_long[0]*np.log10(pivot_long) +
+                               p_long[1])
+        
+        
+        pivots = np.hstack([pivot_short, pivot_int, pivot_long])
+        pivot_flux = np.hstack([pivot_flux_short, pivot_flux_int, pivot_flux_long])
+        cont_spline = UnivariateSpline(pivots, pivot_flux, s=0)
+		continuum = Spectrum(spec_waves,
+		                     cont_spline(spec_waves.value)*spec_flux.unit)
+		                    
+		
+    elif spec_type == "P":
+        ind_short = ((spec_waves >= 5.3*u.micron) &
+                     (spec_waves <= 5.7*u.micron))
+        ind_int = ((spec_waves >= 14.0*u.micron) &
+                   (spec_waves <= 15.0*u.micron))
+        ind_long = ((spec_waves >= 27.0*u.micron) &
+                    (spec_waves <= 31.5*u.micron))
+		
+		flux_short = np.mean(spec_flux[ind_short])
+		flux_int = np.mean(spec_flux[ind_int])
+		wave_short = np.mean(spec_waves.value[ind_short])
+		wave_int = np.mean(spec_waves.value[ind_int])
+		p_short_int = np.polyfit(np.log10([wave_short, wave_int]),
+		                         np.log10([flux_short, flux_int]),
+		                         deg=1)
+		pivot_long = spec_waves.value[ind_long]
+		pivot_flux_long = spec_flux.value[ind_long]
+		pivots = np.hstack([wave_int, pivot_long])
+		pivot_flux = np.hstack([flux_int, pivot_flux_long])
+		
+		cont_spline = UnivariateSpline(pivots, pivot_flux, s=0)
+		
+		continuum_short = 10**(p_short_int[0]*spec_waves.value[spec_waves.value < 15.0] +
+		                       p_short_int[1])
+		continuum_long = cont_spline(spec_waves.value[spec_waves >= 15.0])
+		continuum = Spectrum(spec_waves,
+		                     np.hstack([continuum_short, continuum_long]*spec_flux.unit)
+        
+    elif spec_type == "A":
+        ind_short = ((spec_waves >= 5.2*u.micron) &
+                     (spec_waves <= 5.6*u.micron))
+        ind_int = ((spec_waves >= 13.2*u.micron) &
+                   (spec_waves <= 14.5*u.micron))
         ind_long = ((spec_waves >= 27.0*u.micron) &
                     (spec_waves <= 31.5*u.micron))
 
-#        short_fit = np.polyfit(np.log10(spec_waves.value[ind_short]),
-#                               np.log10(spec_flux.value[ind_short]), deg=1)
-#        long_fit = np.polyfit(np.log10(spec_waves.value[ind_long]),
-#                              np.log10(spec_flux.value[ind_long]), deg=1)
-#        pivot_short_flux = 10**(short_fit[0]*np.log10(7.2) + short_fit[1])
-#        pivot_long_flux = 10**(long_fit[0]*np.log10(27.0) + long_fit[1])
-#        pivot_middle_flux = np.interp(13.5, spec_waves.value,
-#                                      spec_flux.value)
-#        pivots = np.array([7.2, 13.5, 27.0])
-#        pivot_flux = np.array([pivot_short_flux, pivot_middle_flux,
-#                               pivot_long_flux])
-        pivots = spec_waves[ind_short | ind_long].value
-        pivot_flux = spec_flux[ind_short | ind_long].value
-        pivot_weight = spec_error[ind_short | ind_long].value
-        cont_spline = UnivariateSpline(pivots, pivot_flux, w=pivot_weight)
+        # Fit each interval with a power-law which is a line in log-space
+        p_short = np.polyfit(np.log10(spec_waves.value[ind_short]),
+                             np.log10(spec_flux.value[ind_short]),
+                             deg=1)
+        p_int = np.polyfit(np.log10(spec_waves.value[ind_int]),
+                           np.log10(spec_flux.value[ind_int]),
+                           deg=1)
+        p_long = np.polyfit(np.log10(spec_waves.value[ind_long]),
+                            np.log10(spec_flux.value[ind_long]),
+                            deg=1)
 
-    elif spec_type == "P":
-        pivots = np.array([5.5, 14.5, 27.0, 31.5])
-        pivot_flux = np.array([np.interp(p, spec_waves.value, spec_flux.value)
-                               for p in pivots])
+        pivot_short = spec_waves.value[ind_short]
+        pivot_anchor = 7.8
+        pivot_int = spec_waves.value[ind_int]
+        pivot_long = spec_waves.value[ind_long]
+        pivot_flux_short = 10**(p_short[0]*np.log10(pivot_short) +
+                                p_short[1])
+        pivot_flux_anchor = np.interp(7.8, spec_waves.value,
+                                      spec_flux.value)
+        pivot_flux_int = 10**(p_int[0]*np.log10(pivot_int) +
+                              p_int[1])
+        pivot_flux_long = 10**(p_long[0]*np.log10(pivot_long) +
+                               p_long[1])
+                               
+        pivots = np.hstack([pivot_short,
+                            pivot_anchor,
+                            pivot_int,
+                            pivot_long])
+        pivot_flux = np.hstack([pivot_flux_short,
+                                pivot_flux_anchor,
+                                pivot_flux_int,
+                                pivot_flux_long])
+        
         cont_spline = UnivariateSpline(pivots, pivot_flux, s=0)
+        continuum = Spectrum(spec_waves,
+                             cont_spline(spec_waves.value)*spec_flux.unit)
 
-    elif spec_type == "A":
-        pivots = np.array([5.2, 5.6, 14.0, 27.0, 31.5])
-        pivot_flux = np.array([np.interp(p, spec_waves.value, spec_flux.value)
-                               for p in pivots])
-        cont_spline = UnivariateSpline(pivots, pivot_flux, s=0)
-
-    cont_waves = spec.waves
-#    if spec_type == "C":
-#        cont_flux = np.zeros(len(cont_waves))
-#        short = cont_waves < 7.2*u.micron
-#        cont_flux[short] = 10**(short_fit[0]*np.log10(cont_waves.value[short])
-#                                + short_fit[1])
-#        mid = (cont_waves >= 7.2*u.micron) & (cont_waves <= 27.0*u.micron)
-#        cont_flux[mid] = cont_spline(cont_waves.value[mid])
-#        llong = cont_waves > 27.0*u.micron
-#        cont_flux[llong] = 10**(long_fit[0]*np.log10(cont_waves.value[llong])
-#                                + long_fit[1])
-#
-#    else:
-    cont_flux = cont_spline(cont_waves.value)
-
-    continuum = Spectrum(cont_waves, cont_flux*spec_flux.unit)
-
-    cont_object = {'cont': continuum, 'pivots': pivots,
-                   'pivot_flux': pivot_flux, 'cont_spline': cont_spline}
-
-    return cont_object
+    return continuum
 
 
 def calc_eqw(spec, cont, wi, wf):
