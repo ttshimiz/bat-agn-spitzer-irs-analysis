@@ -76,7 +76,7 @@ def spline_fit(spec, spec_type):
         pivots = np.hstack([pivot_short, pivot_int, pivot_long])
         pivot_flux = np.hstack([pivot_flux_short, pivot_flux_int, pivot_flux_long])
         cont_spline = UnivariateSpline(pivots, pivot_flux, s=0)
-		continuum = Spectrum(spec_waves,
+        continuum = Spectrum(spec_waves,
 		                     cont_spline(spec_waves.value)*spec_flux.unit)
 		                    
 		
@@ -88,25 +88,24 @@ def spline_fit(spec, spec_type):
         ind_long = ((spec_waves >= 27.0*u.micron) &
                     (spec_waves <= 31.5*u.micron))
 		
-		flux_short = np.mean(spec_flux[ind_short])
-		flux_int = np.mean(spec_flux[ind_int])
-		wave_short = np.mean(spec_waves.value[ind_short])
-		wave_int = np.mean(spec_waves.value[ind_int])
-		p_short_int = np.polyfit(np.log10([wave_short, wave_int]),
-		                         np.log10([flux_short, flux_int]),
-		                         deg=1)
-		pivot_long = spec_waves.value[ind_long]
-		pivot_flux_long = spec_flux.value[ind_long]
-		pivots = np.hstack([wave_int, pivot_long])
-		pivot_flux = np.hstack([flux_int, pivot_flux_long])
-		
-		cont_spline = UnivariateSpline(pivots, pivot_flux, s=0)
-		
-		continuum_short = 10**(p_short_int[0]*spec_waves.value[spec_waves.value < 15.0] +
+        flux_short = np.mean(spec_flux.value[ind_short])
+        flux_int = np.mean(spec_flux.value[ind_int])
+        wave_short = np.mean(spec_waves.value[ind_short])
+        wave_int = np.mean(spec_waves.value[ind_int])
+        p_short_int = np.polyfit(np.log10([wave_short, wave_int]),
+                                 np.log10([flux_short, flux_int]),
+                                 deg=1)
+        pivot_long = spec_waves.value[ind_long]
+        pivot_flux_long = spec_flux.value[ind_long]
+        pivots = np.hstack([wave_int, pivot_long])
+        pivot_flux = np.hstack([flux_int, pivot_flux_long])
+
+        cont_spline = UnivariateSpline(pivots, pivot_flux, s=0)
+        continuum_short = 10**(p_short_int[0]*np.log10(spec_waves.value[spec_waves.value < 15.0]) +
 		                       p_short_int[1])
-		continuum_long = cont_spline(spec_waves.value[spec_waves >= 15.0])
-		continuum = Spectrum(spec_waves,
-		                     np.hstack([continuum_short, continuum_long]*spec_flux.unit)
+        continuum_long = cont_spline(spec_waves.value[spec_waves.value >= 15.0])
+        continuum = Spectrum(spec_waves,
+                             np.hstack([continuum_short, continuum_long])*spec_flux.unit)
         
     elif spec_type == "A":
         ind_short = ((spec_waves >= 5.2*u.micron) &
