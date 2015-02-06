@@ -96,12 +96,16 @@ def spline_fit(spec, spec_type):
         p_short_int = np.polyfit(np.log10([wave_short, wave_int]),
                                  np.log10([flux_short, flux_int]),
                                  deg=1)
+        p_long = np.polyfit(np.log10(spec_waves.value[ind_long]),
+                            np.log10(spec_flux.value[ind_long]),
+                            deg=1)
         
         pivot_short_int = spec_waves.value[spec_waves.value < 15.0]            
         pivot_flux_short_int = 10**(p_short_int[0]*np.log10(pivot_short_int) +
                                p_short_int[1])
         pivot_long = spec_waves.value[ind_long]
-        pivot_flux_long = spec_flux.value[ind_long]
+        pivot_flux_long = 10**(p_long[0]*np.log10(pivot_long) +
+                               p_long[1])
         pivots = np.hstack([pivot_short_int, pivot_long])
         pivot_flux = np.hstack([pivot_flux_short_int, pivot_flux_long])
 
@@ -142,7 +146,7 @@ def spline_fit(spec, spec_type):
         pivot_flux_int = np.mean(spec_flux.value[ind_int])
         pivot_flux_long = 10**(p_long[0]*np.log10(pivot_long) +
                                p_long[1])
-        if spec_type == "A"
+        if spec_type == "A":
             pivot_anchor = 7.8
             pivot_flux_anchor = np.interp(7.8, spec_waves.value,
                                           spec_flux.value)
@@ -157,11 +161,9 @@ def spline_fit(spec, spec_type):
                                     pivot_flux_long])
         else:
             pivots = np.hstack([pivot_short,
-                                pivot_anchor,
                                 pivot_int,
                                 pivot_long])
             pivot_flux = np.hstack([pivot_flux_short,
-                                    pivot_flux_anchor,
                                     pivot_flux_int,
                                     pivot_flux_long])
         
