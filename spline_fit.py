@@ -88,7 +88,7 @@ def spline_fit(spec, spec_type):
                    (spec_waves <= 15.0*u.micron))
         ind_long = ((spec_waves >= 27.0*u.micron) &
                     (spec_waves <= 31.5*u.micron))
-		
+
         flux_short = np.mean(spec_flux.value[ind_short])
         flux_int = np.mean(spec_flux.value[ind_int])
         wave_short = np.mean(spec_waves.value[ind_short])
