@@ -41,7 +41,7 @@ def spline_fit(spec, spec_type):
     spec_flux = spec.flux
     spec_error = spec.error
 	
-    # Continuum dominated sources use wavelength intervales 5-7,
+    # Continuum dominated sources use wavelength intervals 5-7,
     # 13.8-14.2, and 27-31.5 um
     if spec_type == "C":
         ind_short = ((spec_waves >= 5.0*u.micron) &
@@ -172,7 +172,7 @@ def spline_fit(spec, spec_type):
         continuum = Spectrum(spec_waves,
                              cont_spline(spec_waves.value)*spec_flux.unit)
 
-    return continuum
+    return continuum, cont_spline
 
 
 def calc_eqw(spec, cont, wi, wf):
@@ -207,8 +207,8 @@ def calc_eqw(spec, cont, wi, wf):
         raise TypeError('"spec" must be a Spectrum object!')
 
     # Check to make sure spec is a Spectrum
-    if not isinstance(cont, UnivariateSpline):
-        raise TypeError('"cont" must be a UnivariateSpline object!')
+    #if not isinstance(cont, UnivariateSpline):
+    #    raise TypeError('"cont" must be a UnivariateSpline object!')
 
     # Pull out the wavelengths and flux of the spectrum
     spec_waves = spec.waves
